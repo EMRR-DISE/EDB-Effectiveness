@@ -24,7 +24,7 @@ MyZoops <- Zoopsynther(Data_type = "Community",
                        Date_range = c("2014-01-01", "2021-12-30"))
 
 #subset just regions surrounding the Barrier. 
-regs = read_sf("EDB/Spatial_data/EDB_Regions.shp") %>%
+regs = read_sf("Spatial_data/EDB_Regions.shp") %>%
   st_make_valid()
 
 MyZoopssf = st_as_sf(MyZoops, coords = c("Longitude", "Latitude"), crs = 4326)
@@ -60,18 +60,21 @@ EMPzoops = filter(MyZoopssub, Source == "EMP")
 EMPsamps = group_by(EMPzoops, Regions, Year) %>%
   summarize(N = length(unique(SampleID)))
 
+write.csv(EMPzoops, "EMPzoops.csv", row.names = FALSE)
+
+
 ggplot(EMPzoops, aes(x = Regions, y = CPUE, fill = Analy2))+ geom_col()+
   geom_text(data = EMPsamps, aes(x = Regions, y = 900000, label = N), inherit.aes = FALSE)+
-  facet_wrap(~Year)
+  facet_wrap(~Year)+ theme_bw())
 
 #Need averages rather than totals
 EMPzoopsave = group_by(EMPzoops, Regions, Year, Analy2) %>%
   summarize(CPUEm = mean(CPUE), sdzoop = sd(CPUE), se = sdzoop/n())
 
 ggplot(EMPzoopsave, aes(x = Regions, y = CPUEm, fill = Analy2))+ geom_col()+
-  geom_text(data = EMPsamps, aes(x = Regions, y = 5000, label = N), inherit.aes = FALSE)+
-  scale_fill_manual(values = mypal)+
-  facet_wrap(~Year)
+  geom_text(data = EMPsamps, aes(x = Regions, y = 1000, label = N), inherit.aes = FALSE)+
+  scale_fill_manual(values = mypal, name = "Taxon")+
+  facet_wrap(~Year)+ theme_bw()
 
 ###############################################
 #now total zooplankton catch, with error bars.
