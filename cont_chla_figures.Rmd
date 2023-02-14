@@ -29,26 +29,20 @@ library(lubridate)
 library(scales)
 library(rlang)
 library(patchwork)
-# Install the EDBdata package version 0.2.0 to use the data displayed in the
-  # figures of the February 2022 version of the EDB report. Update EDBdata to >=
-  # v0.2.1 to update the figures for a future version of the report. This will
-  # update the daily averages and medians of the two USGS stations - MDM and SJJ.
-# install.packages("devtools")
-# devtools::install_github("mountaindboz/EDBdata", ref = "v0.2.0")
 library(EDBdata)
 library(here)
 ```
 
 ```{r check dir}
 # Check if we are in the correct working directory
-i_am("EDB/cont_chla_figures.Rmd")
+i_am("cont_chla_figures.Rmd")
 ```
 
 # Import and Prepare Data
 
 ```{r import data, message = FALSE}
 # Import discrete chlorophyll data for OSJ, FAL, and D19
-df_d_chla_orig <- read_csv(here("EDB/d_chla_fal_osj_d19.csv"))
+df_d_chla_orig <- read_csv(here("d_chla_fal_osj_d19.csv"))
 ```
 
 ```{r prepare data}
@@ -101,7 +95,7 @@ df_edb_dates <-
 
 # Create a tibble to define consistent min and max values for the y-axes of the time-series plots
 df_ts_ylim <- df_cont_chla_clean %>% 
-  summarize(across(starts_with("Chla_"), list(min = ~ floor(min(.x)), max = ~ ceiling(max(.x)))))
+  summarize(across(ends_with("Chla"), list(min = ~ floor(min(.x)), max = ~ ceiling(max(.x)))))
 
 # Prepare 2021 discrete chlorophyll data for FAL, OSJ, and D19 to be added to time-series plots
   # of continuous data
@@ -136,12 +130,12 @@ ts_plot_region <- function(df, region_var, data_var) {
   data_var_str <- as_name(ensym(data_var))
   
   # Define min and max limits for the y-axes based on data_var
-  y_min <- if (data_var_str == "Chla_avg") df_ts_ylim$Chla_avg_min else df_ts_ylim$Chla_med_min
-  y_max <- if (data_var_str == "Chla_avg") df_ts_ylim$Chla_avg_max else df_ts_ylim$Chla_med_max
+  y_min <- if (data_var_str == "AvgChla") df_ts_ylim$AvgChla_min else df_ts_ylim$MedianChla_min
+  y_max <- if (data_var_str == "AvgChla") df_ts_ylim$AvgChla_max else df_ts_ylim$MedianChla_max
   
   # Define y-axis label
   if (region_var == "San Joaquin") {
-    if (data_var_str == "Chla_avg") {
+    if (data_var_str == "AvgChla") {
       y_label <- "Daily Average Chlorophyll (µg/L)"
     } else {
       y_label <- "Daily Median Chlorophyll (µg/L)"
@@ -191,13 +185,13 @@ ts_plot_region <- function(df, region_var, data_var) {
 ```{r create ts figures}
 # Daily averages
 plt_ts_avg <- ndf_cont_chla_ts %>% 
-  mutate(plt_ts = map2(df_data, Region, .f = ts_plot_region, data_var = Chla_avg)) %>% 
+  mutate(plt_ts = map2(df_data, Region, .f = ts_plot_region, data_var = AvgChla)) %>% 
   pull(plt_ts) %>% 
   wrap_plots(ncol = 1)
 
 # Daily medians
 plt_ts_med <- ndf_cont_chla_ts %>% 
-  mutate(plt_ts = map2(df_data, Region, .f = ts_plot_region, data_var = Chla_med)) %>% 
+  mutate(plt_ts = map2(df_data, Region, .f = ts_plot_region, data_var = MedianChla)) %>% 
   pull(plt_ts) %>% 
   wrap_plots(ncol = 1)
 ```
@@ -231,7 +225,7 @@ plt_ts_d_cont <- df_cont_chla_ts %>%
     Year == 2021,
     Station %in% c("FAL", "OSJ", "FRK")
   ) %>% 
-  ggplot(aes(x = Date, y = Chla_med)) +
+  ggplot(aes(x = Date, y = MedianChla)) +
   geom_line() +
   facet_wrap(
     vars(Station), 
@@ -279,7 +273,7 @@ plt_ts_d_cont
 
 ```{r boxplot by season, fig.width = 8}
 plt_bp_seas <- df_cont_chla_bp %>% 
-  ggplot(aes(x = Region, y = Chla_med, fill = Season)) +
+  ggplot(aes(x = Region, y = MedianChla, fill = Season)) +
   geom_boxplot() +
   facet_wrap(vars(Year)) +
   edb_theme +
@@ -294,7 +288,7 @@ plt_bp_seas
 ```{r boxplot by year}
 plt_bp_yr <- df_cont_chla_bp %>% 
   mutate(Year = as.character(Year)) %>% 
-  ggplot(aes(x = Region, y = Chla_med, fill = Year)) +
+  ggplot(aes(x = Region, y = MedianChla, fill = Year)) +
   geom_boxplot() +
   edb_theme +
   ylab("Daily Median Chlorophyll (µg/L)") +
@@ -310,7 +304,7 @@ All figures for the February 2022 report exported here were moved to the EDB Sha
 ```{r export rpt figures, eval = FALSE}
 # Export daily average time-series figure
 ggsave(
-  here("EDB/cont_chla_ts_daily_avg.jpg"),
+  here("cont_chla_ts_daily_avg.jpg"),
   plot = plt_ts_avg,
   width = 6.5,
   height = 8.25,
@@ -319,7 +313,7 @@ ggsave(
 
 # Export daily median time-series figure
 ggsave(
-  here("EDB/cont_chla_ts_daily_med.jpg"),
+  here("cont_chla_ts_daily_med.jpg"),
   plot = plt_ts_med,
   width = 6.5,
   height = 8.25,
@@ -328,7 +322,7 @@ ggsave(
 
 # Export discrete and continuous time-series comparison figure
 ggsave(
-  here("EDB/cont_d_chla_ts_comp.jpg"),
+  here("cont_d_chla_ts_comp.jpg"),
   plot = plt_ts_d_cont,
   width = 4.5,
   height = 5,
@@ -337,7 +331,7 @@ ggsave(
 
 # Export boxplot by season figure
 ggsave(
-  here("EDB/cont_chla_bp_season.jpg"),
+  here("cont_chla_bp_season.jpg"),
   plot = plt_bp_seas,
   width = 6.5,
   height = 4,
@@ -346,7 +340,7 @@ ggsave(
 
 # Export boxplot by year figure
 ggsave(
-  here("EDB/cont_chla_bp_yr.jpg"),
+  here("cont_chla_bp_yr.jpg"),
   plot = plt_bp_yr,
   width = 5,
   height = 4,
