@@ -1,0 +1,87 @@
+---
+title: "TUCPzoops"
+author: "Rosie"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lubridate)
+library(zooper)
+
+#X2 from Dayflow
+library(DroughtData)
+
+X2 = select(raw_hydro_1975_2021, X2, Date, Outflow)
+
+
+
+```
+
+## Ecosystem impacts of the TUCP
+
+The 2023 TUCP is going to change X2 from March through May. Let's analyze the relationship between X2 and CPUE of the 12 most common zooplankton taxa caught by EMP from 1995-2021
+
+```{r cars}
+
+
+zoops = Zoopsynther(Data_type = 'Community', Sources = "EMP", Size_class = c("Meso", "Macro"))
+
+zoops2 = filter(zoops, Undersampled == F, month(Date) %in% c(3,4,5), Year %in% c(1995:2021))
+
+taxa = group_by(zoops2, Taxlifestage) %>%
+  summarize(tot = sum(CPUE))
+toptax = arrange(taxa, by = -tot)[1:12,]
+
+zoops3 = filter(zoops2, Taxlifestage %in% toptax$Taxlifestage) %>%
+  left_join(X2) %>%
+  mutate(Taxa = factor(Taxlifestage, levels = sort(unique(Taxlifestage)), 
+                       labels = c("Acartia sp. \nadults","Acartia sp.\n copepedites", "Bosmina logirostris",
+                                  "Other Calanoid \nCopepods", "Barnacle Larvae", "Other Cladocera",
+                                  "Daphnia sp.", "Eurytemora affinis\nadults", "Eurrytemora affinis\ncopepedites",
+                                  "Pseudodiaptomus forbesi\nadult", "Pseudodiaptomus sp.\ncopepedites", "Sinocalanus doerrii\nadult")))
+
+ggplot(zoops3, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
+                                                        color = "seagreen")+geom_smooth(method = "lm", color = "black")+
+  facet_wrap(~Taxa)+theme_bw()
+
+```
+
+Now let's filter it to just the low salinity zone
+
+```{r pressure, echo=FALSE}
+
+zoopsLSZ = filter(zoops3, SalSurf >0.5, SalSurf <=6)
+
+
+ggplot(zoopsLSZ, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
+                                                        color = "seagreen")+geom_smooth(method = "lm", color = "black")+
+  facet_wrap(~Taxa)+theme_bw()+ xlab("X2 - March-May")
+
+```
+
+It might be easier to show annual averages instead of all the points
+
+```{r}
+
+
+#maybe annual averages?
+Zoopan = group_by(zoops3, Taxa, Year) %>%
+  summarize(CPUE = mean(CPUE), X2 = mean(X2))
+
+ZoopanLSZ = group_by(zoopsLSZ, Taxa, Year) %>%
+  summarize(CPUE = mean(CPUE), X2 = mean(X2))
+
+ggplot(ZoopanLSZ, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
+                                                          color = "seagreen")+geom_smooth(method = "lm", color = "black")+
+  facet_wrap(~Taxa)+theme_bw()+ xlab("Mean X2 - March-May")+ylab("log Annual mean CPUE")+ggtitle("Annual Averages - entire system")
+
+ggplot(Zoopan, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
+                                                           color = "seagreen")+geom_smooth(method = "lm", color = "black")+
+  facet_wrap(~Taxa)+theme_bw()+ xlab("Mean X2 - March-May")+ylab("log Annual mean CPUE")+ggtitle("Annual Averages - LSZ")
+
+```
+

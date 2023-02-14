@@ -1,0 +1,28 @@
+"","StationCode","Regions","MethodCode","Location","Latitude","Longitude","Survey"
+"1","MK004W","San Joaquin","SEIN","B&W Marina",38.12746155,-121.5804697,NA
+"2","MR010W","Central Delta","SEIN","Woodward Island",37.9217722,-121.5287972,NA
+"3","MS001N","Sacramento","SEIN","Sherman Island",38.05604444,-121.7855639,NA
+"4","OR003W","Central Delta","SEIN","Franks Tract",38.031977,-121.581859,NA
+"5","OR014W","Central Delta","SEIN","Cruiser Haven",37.92148633,-121.5558943,NA
+"6","OR019E","Central Delta","SEIN","Old River 1",37.87674206,-121.5767796,NA
+"7","OR023E","Central Delta","SEIN","Union Island",37.82567304,-121.551276,NA
+"8","SJ001S","San Joaquin","SEIN","Antioch Dunes",38.01480683,-121.7827132,NA
+"9","SJ005N","San Joaquin","SEIN","Eddo's",38.05079336,-121.6994317,NA
+"10","SR012E","Sacramento","SEIN","Stump Beach",38.13272407,-121.6865463,NA
+"11","SR012W","Sacramento","SEIN","Sandy Beach",38.1392889,-121.6949056,NA
+"12","TM001N","Sacramento","SEIN","Brannan Island",38.11666073,-121.6837998,NA
+"13","WD002W","Central Delta","SEIN","Veale Tract",37.95546975,-121.6042633,NA
+"14","513","Sacramento",NA,NA,38.05946,-121.864,"TNS"
+"15","520","Sacramento",NA,NA,38.03281,-121.86931,"TNS"
+"16","704","Sacramento",NA,NA,38.06776,-121.77501,"TNS"
+"17","706","Sacramento",NA,NA,38.09006,-121.739,"TNS"
+"18","707","Sacramento",NA,NA,38.11226,-121.70601,"TNS"
+"19","801","Sacramento",NA,NA,38.05561,-121.847,"TNS"
+"20","804","San Joaquin",NA,NA,38.02056,-121.794,"TNS"
+"21","809","San Joaquin",NA,NA,38.05396,-121.686,"TNS"
+"22","812","San Joaquin",NA,NA,38.08866,-121.64051,"TNS"
+"23","815","San Joaquin",NA,NA,38.08,-121.56981,"TNS"
+"24","902","Central Delta",NA,NA,38.02616,-121.58301,"TNS"
+"25","914","Central Delta",NA,NA,37.9715,-121.52,"TNS"
+"26","915","Central Delta",NA,NA,37.94056,-121.559,"TNS"
+"27","918","Central Delta",NA,NA,37.85931,-121.56881,"TNS"
