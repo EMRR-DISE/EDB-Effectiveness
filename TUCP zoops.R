@@ -18,7 +18,7 @@ zoops = Zoopsynther(Data_type = 'Community', Sources = c("EMP", "20mm"), Size_cl
 mys = Zoopsynther(Data_type = 'Community', Sources = c("EMP"), Size_class = c("Macro"))
 mys2 = filter(mys, Undersampled == F, month(Date) %in% c(3,4,5), Year %in% c(2000:2021))
 
-zoops2 = filter(zoops, Undersampled == F, month(Date) %in% c(3,4,5), Year %in% c(2000:2021), order == "Mysida")
+zoops2 = filter(zoops, Undersampled == F, month(Date) %in% c(3,4,5), Year %in% c(2000:2021))
 
 taxa = group_by(zoops2, Taxlifestage) %>%
   summarize(tot = sum(CPUE))
@@ -226,6 +226,14 @@ ggplot(AllzoopsAn, aes(x = log(Outflow), y = log(CPUE+1)))+geom_point(alpha = 0.
                                                   label = sig),
             size = 5, color = "red", inherit.aes = FALSE, hjust = 0, vjust =1)
 
+#export functions
+write.csv(Outm, "ZooplanktonRegressions.csv")
+
+baseOutflow = mean(c(16600, 10800, 7300))
+TUCPOutflow = mean(c(12750, 10800, 7250))
+
+log(baseOutflow)
+log(TUCPOutflow)
 ##########################################################################
 #quickly look at EMP's visual index
 
