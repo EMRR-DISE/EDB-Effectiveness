@@ -42,7 +42,7 @@ i_am("cont_chla_figures.Rmd")
 
 ```{r import data, message = FALSE}
 # Import discrete chlorophyll data for OSJ, FAL, and D19
-df_d_chla_orig <- read_csv(here("d_chla_fal_osj_d19.csv"))
+df_d_chla_orig <- read_csv(here("data/d_chla_fal_osj_d19.csv"))
 ```
 
 ```{r prepare data}
@@ -347,4 +347,3 @@ ggsave(
   units = "in"
 )
 ```
-
