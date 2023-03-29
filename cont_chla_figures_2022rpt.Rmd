@@ -1,5 +1,5 @@
 ---
-title: "EDB: Continuous Chlorophyll Figures"
+title: "EDB: Continuous Chlorophyll Figures - 2022 Report"
 author: "Dave Bosworth"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
@@ -35,7 +35,7 @@ library(here)
 
 ```{r check dir}
 # Check if we are in the correct working directory
-i_am("cont_chla_figures.Rmd")
+i_am("cont_chla_figures_2022rpt.Rmd")
 ```
 
 # Import and Prepare Data
