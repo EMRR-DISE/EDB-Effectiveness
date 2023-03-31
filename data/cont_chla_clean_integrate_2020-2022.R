@@ -367,7 +367,8 @@ cont_chla_daily_2022 <- df_chla_all_dv %>%
     Date,
     AvgChla,
     MedianChla
-  )
+  ) %>% 
+  arrange(Station, Year)
 
 
 # 4. Save and Export Data -------------------------------------------------
