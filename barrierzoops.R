@@ -27,7 +27,7 @@ MyZoops <- Zoopsynther(Data_type = "Community",
 load("data/barrierregions.RData")
 
 MyZoopssf = filter(MyZoops, !is.na(Latitude)) %>%
-  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326, remove = F)
 
 regions = st_transform(regions, crs = 4326)
 
@@ -42,6 +42,9 @@ crosswalk = read_excel("data/zoopcrosswalk.xlsx") %>%
 MyZoops = mutate(MyZoopssf, Taxname = str_remove(Taxname, "_UnID")) %>%
   left_join(crosswalk) %>%
   filter(!Undersampled)
+
+#export .csv for the data package
+write.csv(MyZoops, "BarrierZoops.csv")
 
 #stacked bar plot by region and year
 

@@ -24,6 +24,7 @@ library(lmerTest)
 library(glmmTMB)
 library(performance)
 library(multcomp)
+
 library(multcompView)
 library(DHARMa)
 library(brms)
@@ -107,14 +108,14 @@ TNSd = filter(TNSd, !Species %in% filter(species, tot == 0)$Species) %>%
     TRUE ~ Species
   )) %>%
   mutate(Species = str_replace(Species, "(UNID)",""), Species = str_replace(Species, "(Unid)",""), Species = str_replace(Species, "()","")) %>%
-  group_by(StationCode, Regions, Year, Survey, SampDate, Species) %>%
+  group_by(StationCode, Regions, Year, Survey, SampDate, Species, VolumeOfAllTows) %>%
   summarize(Catch = sum(Catch), CPUE = sum(CPUE))
 
-TNSd = group_by(TNSd, StationCode, Regions, Year, Survey, SampDate, Species) %>%
+TNSd = group_by(TNSd, StationCode, Regions, Year, Survey, SampDate, Species, VolumeOfAllTows) %>%
   summarize(Catch = sum(Catch, na.rm = T), CPUE = sum(CPUE, na.rm = T))
 
-
-write.csv(TNSd, "BarrierTNS.csv")
+#TNSd = read_csv("BarrierTNS.csv")
+write.csv(TNSd, "BarrierTNS.csv", row.names = FALSE)
 
 #what's going on with the gobies?
 TNSd %>%
@@ -164,12 +165,15 @@ TNmeanS = group_by(TNSd, Year, Regions, Species) %>%
                              Species %in% c("Catfish  ()",  "Channel Catfish", "White Catfish") ~ "Catfish",
                              Species %in%  c("Trid_SB0  ()", "Yellowfin Goby", "Tridentiger spp","Gobies  ()", 
                                              "Shimofuri Goby","Shokihaze Goby")~ "Gobies",
+                             Species == "Herring  ()" ~ "Herring",
+                             Species == "Centrarchids  ()" ~ "Centrarchids",
+                             Species == "Three Spine Stickleback" ~ "Threespine \nStickleback",
                              Species %in% c("Blackfordia virginica", "Maeotias") ~ "Jellyfish",
                              TRUE ~ Species), Yearf = as.factor(Year))
 
 ggplot(TNmeanS, aes(x = Yearf, y= CPUE, group = Year)) + geom_col(aes(fill = Species2))+
   facet_wrap(~Regions)+ylab("Mean total Fish/1000m3")+
-  scale_fill_manual(values = c(mypal, "red", "green", "grey", "purple", "tan", "orange"), name = "Species")+
+  scale_fill_manual(values = c(mypal, "red", "green", "grey", "purple", "tan", "orange"), name = NULL)+
   theme_bw()+ xlab(NULL)+
   theme(legend.position = "bottom", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = .5))
 
@@ -258,6 +262,21 @@ c3 = brm(Catch ~ Regions*yearf+ (1|StationCode), family = zero_inflated_negbinom
 c3s = summary(c3)
 plot(c3)
 conditional_effects(c3)
+
+
+stnplots = conditional_effects(c3)
+
+
+ggplot(data = stnplots$`Regions:yearf`, aes(x= effect1__, color = effect2__, y = estimate__)
+)+ geom_point(position = position_dodge(width = .6), size = 4)+ 
+  geom_errorbar(aes(ymin = lower__, ymax = upper__, group = effect2__), width = .5, position = position_dodge(width = .6))+
+  ylab("Modeled CPUE")+ xlab(NULL)+
+  scale_color_discrete(name = NULL)+
+  theme_bw()
+
+ggsave("plots/STNmodel.tiff", device = "tiff", width = 8, height = 6, units = "in")
+
+
 
 #export results table
 write.csv(c3s$fixed, "plots/TownNetModel.csv")
@@ -439,7 +458,7 @@ DJFMP2 = pivot_wider(DJFMP.1, id_cols = c(Regions, StationCode, Month, Year, Sam
   pivot_longer(cols = `largemouth bass`:last_col(), values_to = "Count", names_to = "CommonName")
 
 
-write.csv(DJFMP2, "BarriersDJFMP.csv")
+write.csv(DJFMP2, "BarriersDJFMP.csv", row.names = F)
 
 ggplot(DJFMP, aes(x= Regions, y = Count, color = CommonName)) + geom_point() + 
   facet_wrap(~Year, scales = "free_y") + scale_color_discrete(guide = NULL)
@@ -464,10 +483,17 @@ ggplot(DJmean, aes(x = Regions, y= CPUE, group = Year)) + geom_col()+
   geom_errorbar(aes(ymin = CPUE-SE, ymax = CPUE+SE))+
   facet_wrap(~Year)
 
+#but in zeros for all species
+DJweros = pivot_wider(DJFMP, id_cols = c(Regions, StationCode, Month, Year, SampleDate, Volume), 
+            names_from = "CommonName", values_from = Count, values_fn = sum, values_fill = 0) %>%
+  pivot_longer(cols = `largemouth bass`:last_col(), values_to = "Count", names_to = "CommonName")
 
-DJmean2 =  group_by(DJFMP, Year, Regions, CommonName) %>%
-  summarize(CPUE = mean(Count, na.rm = T))
 
+DJmean2 =  group_by(DJweros, Year, Regions, CommonName) %>%
+  summarize(CPUE = mean(Count, na.rm = T)) %>%
+  mutate( Species = tools::toTitleCase(CommonName))
+
+#means by species and region
 DJmean2.1 = DJFMP2 %>%
   # mutate(CommonName2 = case_when(
   #   CommonName %in% DJrare ~ "Other",
@@ -480,18 +506,23 @@ DJmean2.1 = DJFMP2 %>%
   # )) %>%
   group_by(Year, Regions, CommonName) %>%
   summarize(CPUE = mean(Count, na.rm = T)) %>%
-  mutate(Yearf = as.factor(Year))
+  mutate(Yearf = as.factor(Year), Species = tools::toTitleCase(CommonName))
 
-ggplot(DJmean2.1, aes(x = Yearf, y= CPUE, fill = CommonName)) + 
+
+ggplot(DJmean2.1, aes(x = Yearf, y= CPUE, fill = Species)) + 
   geom_col()+
  facet_wrap(~Regions)+
-  scale_fill_manual(values = mypal, name = "Species")+
+  scale_fill_manual(values = mypal, name = NULL)+
   theme_bw()+ xlab(NULL)+
-  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90, size = 14),
+        legend.text = element_text(size = 14), axis.text.y = element_text(size = 14), strip.text = element_text(size = 14))
   
 
-ggsave("plots/DJFMPcom.tiff", device = "tiff", width = 8, height = 7)
+ggsave("plots/DJFMPcom.tiff", device = "tiff", width = 9, height = 7)
 
+ggsave("plots/DJFMPcombig.tiff", device = "tiff", width = 12, height = 9)
+
+ggplot(DJFMP2)
 
 #special status species
 
@@ -504,11 +535,12 @@ DJS2 = dplyr::filter(DJmean2, CommonName %in% c("Chinook salmon", "Delta smelt",
   droplevels() %>%
   mutate(Yearf = as.factor(Year))
 
+
 ggplot(DJS, aes(x = Year, y = Count))+ geom_point()+
   facet_grid(CommonName~Regions)+ coord_cartesian(ylim = c(0,20))
 
-ggplot(DJS2, aes(x = Yearf, y = CPUE, fill = CommonName)) + 
-  geom_col(position = "dodge")+
+ggplot(DJS2, aes(x = Yearf, y = CPUE, fill = Species)) + 
+  geom_col(position = position_dodge(preserve = "single"))+
   facet_wrap(~Regions)+
   theme_bw()+
   theme(legend.position = "bottom")
@@ -524,10 +556,11 @@ cent = filter(DJmean2.1, CommonName %in% c("largemouth bass", "redear sunfish",
                                          "bluegill", "smallmouth bass", "black crappie"))  %>%
   droplevels()
 
-ggplot(cent, aes(x = Yearf, y = CPUE, fill = CommonName))+ geom_col()+
+ggplot(cent, aes(x = Yearf, y = CPUE, fill = Species))+ geom_col()+
   facet_wrap(~Regions)+
-  scale_fill_manual(values = mypal, name = "Species")+
+  scale_fill_manual(values = mypal, name = NULL)+
   theme_bw()+
+  xlab(NULL)+
   theme(legend.position = "bottom")
 
 
@@ -535,19 +568,33 @@ ggsave("plots/DJFMPcent.tiff", device = "tiff", width = 8, height = 6, units = "
 
 
 #model of centrarchids
-centall = filter(DJFMP2, CommonName %in% c("largemouth bass", "redear sunfish",
+centall = filter(DJweros, CommonName %in% c("largemouth bass", "redear sunfish",
                                            "bluegill", "smallmouth bass", "black crappie")) %>%
   group_by(Year, StationCode, Regions, SampleDate) %>%
   summarize(Count = sum(Count))%>%
   mutate(Yearf = factor(Year, levels = c(2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022)))
 
 
-cent = brm(Count ~ Regions*Yearf+ (1|StationCode), family = zero_inflated_negbinomial(), 
+centm = brm(Count ~ Regions*Yearf+ (1|StationCode), family = zero_inflated_negbinomial(), 
           data = centall, iter = 2000, chains = 4, backend = "cmdstanr")
 
-cent
-cen = summary(cent)
-conditional_effects(cent)
+centm
+cen = summary(centm)
+conditional_effects(centm)
+
+centplots = conditional_effects(centm)
+
+centplots$`Regions:Yearf`
+
+ggplot(data = centplots$`Regions:Yearf`, aes(x= effect1__, color = effect2__, y = estimate__)
+)+ geom_point(position = position_dodge(width = .6), size = 4)+ 
+  geom_errorbar(aes(ymin = lower__, ymax = upper__, group = effect2__), width = .5, position = position_dodge(width = .6))+
+  ylab("Modeled CPUE")+ xlab(NULL)+
+  scale_color_discrete(name = NULL)+
+  theme_bw()
+
+ggsave("plots/DJFMPcentmodel.tiff", device = "tiff", width = 8, height = 6, units = "in")
+
 write.csv(cen$fixed, "plots/centrarchidModel.csv")
 
 ###################################
@@ -563,6 +610,19 @@ plot(bs3)
 conditional_effects(bs3)
 write.csv(bs3s$fixed, "plots/beachseine.csv")
 
+
+djfmpplots = conditional_effects(bs3)
+
+djfmpplots$`Regions:Yearf`
+
+ggplot(data = djfmpplots$`Regions:Yearf`, aes(x= effect1__, color = effect2__, y = estimate__)
+)+ geom_point(position = position_dodge(width = .6), size = 4)+ 
+  geom_errorbar(aes(ymin = lower__, ymax = upper__, group = effect2__), width = .5, position = position_dodge(width = .6))+
+  ylab("Modeled CPUE")+ xlab(NULL)+
+  scale_color_discrete(name = NULL)+
+  theme_bw()
+
+ggsave("plots/DJFMPseinemodel.tiff", device = "tiff", width = 8, height = 6, units = "in")
 
 #######################
 #beach seine NMDS

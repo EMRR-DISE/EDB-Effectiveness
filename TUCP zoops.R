@@ -6,24 +6,31 @@ library(zooper)
 
 #X2 from Dayflow
 library(DroughtData)
-View(raw_hydro_1975_2021)
+View(raw_hydro_1975_2022)
 
-X2 = select(raw_hydro_1975_2021, X2, Date, Outflow)
+#Dataframe with just the X2 values and Outflow
+X2 = select(raw_hydro_1975_2022, X2, Date, Outflow)
 
 
-
+#zooplankton dataset - just 20mm and EMP. If you want summer zooplankton you can include STN and FMWT
 zoops = Zoopsynther(Data_type = 'Community', Sources = c("EMP", "20mm"), Size_class = c("Meso", "Macro"))
 
-
+#Pull out the mysid data
 mys = Zoopsynther(Data_type = 'Community', Sources = c("EMP"), Size_class = c("Macro"))
+
+#remove undersampled taxa, filter to just the spring and just the most recent years
 mys2 = filter(mys, Undersampled == F, month(Date) %in% c(3,4,5), Year %in% c(2000:2021))
 
+#do the same thing with the other zooplankton
 zoops2 = filter(zoops, Undersampled == F, month(Date) %in% c(3,4,5), Year %in% c(2000:2021))
 
+#Which are the most common taxa?
 taxa = group_by(zoops2, Taxlifestage) %>%
   summarize(tot = sum(CPUE))
 toptax = arrange(taxa, by = -tot)[1:12,]
+View(toptax)
 
+#filter out the most common taxa and rename
 zoops3 = filter(zoops2, Taxlifestage %in% toptax$Taxlifestage) %>%
   left_join(X2) %>%
   mutate(Taxa = factor(Taxlifestage, levels = sort(unique(Taxlifestage)), 
@@ -34,6 +41,7 @@ zoops3 = filter(zoops2, Taxlifestage %in% toptax$Taxlifestage) %>%
                                   "Pseudodiaptomus forbesi\nadult", "Pseudodiaptomus sp.\ncopepedites", 
                                   "Sinocalanus doerrii\nadult", "Sinocalanus doerrii\ncopepedites")))
 
+#Plot CPUE versus x2
 ggplot(zoops3, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
                                                         color = "seagreen")+geom_smooth(method = "lm", color = "black")+
   facet_wrap(~Taxa)+theme_bw()
@@ -47,7 +55,7 @@ ggplot(zoopsLSZ, aes(x = Outflow, y = log(CPUE+1)))+geom_point(alpha = 0.2,
                                                         color = "seagreen")+geom_smooth(method = "lm", color = "black")+
   facet_wrap(~Taxa)+theme_bw()+ xlab("Outflow - March-May")
 
-#linear models
+#linear models - one for each taxon
 Outmetric = zoopsLSZ  %>%
   mutate(logCPUE = log(CPUE+1))%>%
   group_by(Taxa) %>%
@@ -57,12 +65,13 @@ Outmetric = zoopsLSZ  %>%
             P =  summary(lm(logCPUE ~ log(Outflow)))$coefficients[2,4],
             Y = max(logCPUE, na.rm = T))
 
+#add statistical significance
 Outmetric =  mutate(Outmetric, sig = case_when(P >= 0.05 ~ "NS",
                          P < 0.05 & P > 0.001 ~ "*",
                          P < 0.001 ~ "**"))
 
 
-
+#plot with the labels and formuals
 ggplot(zoopsLSZ, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
                                                           color = "seagreen")+geom_smooth(method = "lm", color = "black")+
   facet_wrap(~Taxa)+theme_bw()+ xlab("X2 - March-May")+
@@ -77,23 +86,26 @@ geom_text(data = filter(Outmetric, sig != "NS"), aes(x = 80, y = 9,
   
 
 
-#maybe annual averages?
+#maybe annual (spring) averages instead of all the data?
 Zoopan = group_by(zoops3, Taxa, Year) %>%
   summarize(CPUE = mean(CPUE), X2 = mean(X2), Outflow = mean(Outflow), logCPUE = log(CPUE+1))
 
+#annual averages for the low salinity zone
 ZoopanLSZ = group_by(zoopsLSZ, Taxa, Year) %>%
   summarize(CPUE = mean(CPUE), X2 = mean(X2), logCPUE = log(CPUE+1), Outflow = mean(Outflow))
 
+#plot low salinity zone zoops versus X2
 ggplot(ZoopanLSZ, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
                                                           color = "seagreen")+geom_smooth(method = "lm", color = "black")+
   facet_wrap(~Taxa)+theme_bw()+ xlab("Mean X2 - March-May")+ylab("log Annual mean CPUE")
 
+#plot overall zoops versus x2
 ggplot(Zoopan, aes(x = X2, y = log(CPUE+1)))+geom_point(alpha = 0.2, 
                                                            color = "seagreen")+geom_smooth(method = "lm", color = "black")+
   facet_wrap(~Taxa)+theme_bw()+ xlab("Mean X2 - March-May")+ylab("log Annual mean CPUE")
 
-
-#models for annual averages - using outflow
+###############################################################################
+#models for annual averages - using outflow instead of X2
 
 
 #linear models
@@ -113,7 +125,7 @@ Outm =  mutate(Outm, sig = case_when(P >= 0.05 ~ "NS",
                                                P < 0.001 ~ "**"))
 
 
-
+#plot it
 ggplot(ZoopanLSZ, aes(x = log(Outflow), y = log(CPUE+1)))+geom_point(alpha = 0.2, 
                                                           color = "seagreen")+
   geom_smooth(method = "lm", color = "grey", fill = "lightgrey", alpha = 0.5)+
@@ -185,6 +197,7 @@ Allzoops = mys3 %>%
                             SalSurf > 6~ "High Salinity"),
          SalCat = factor(SalCat, levels = c("Fresh", "Low Salinity", "High Salinity"), labels = c("Fresh (<0.5ppt)", "Low Salinity (0.5-6 ppt)", "High Salinity (>6 ppt)")))
 
+#calculate annual means
 AllzoopsAn = group_by(Allzoops,Year, SalCat, Taxa2) %>%
   summarise(CPUE = mean(CPUE), X2 = mean(X2), Outflow = mean(Outflow))
 
@@ -210,7 +223,7 @@ Outm =  mutate(Outm, sig = case_when(P >= 0.05 ~ "NS",
                                      P < 0.001 ~ "**"))
 
 
-
+#I'm pretty sure this is what made it into the final TUCP documents
 ggplot(AllzoopsAn, aes(x = log(Outflow), y = log(CPUE+1)))+geom_point(alpha = 0.2, 
                                                                      color = "seagreen")+
   geom_smooth(method = "lm", color = "grey", fill = "lightgrey", alpha = 0.5)+
@@ -234,6 +247,7 @@ TUCPOutflow = mean(c(12750, 10800, 7250))
 
 log(baseOutflow)
 log(TUCPOutflow)
+
 ##########################################################################
 #quickly look at EMP's visual index
 
