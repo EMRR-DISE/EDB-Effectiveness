@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Purpose
 
-Create some time-series and boxplot figures of the daily averages and medians of the continuous chlorophyll data for 2020-2022 for the **April 2023** Emergency Drought Barrier report.
+Create some time-series and boxplot figures of the daily averages and medians of the continuous chlorophyll data for 2020-2022 for the **December 2023** Emergency Drought Barrier report.
 
 # Global code and functions
 
@@ -56,11 +56,9 @@ df_cont_chla <- read_rds(here("data/cont_chla_daily_2020-2022.rds"))
 ```{r prepare data}
 # Prepare data for all figures
 df_cont_chla_c <- df_cont_chla  %>% 
+  # Assign factor order to Region
   mutate(
-    # Reassign FAL to the Central Delta region
-    Region = if_else(Station == "FAL", "Central Delta", Region),
-    # Assign factor order to Region
-    Region = factor(Region, levels = c("Sacramento", "San Joaquin", "Central Delta"))
+    Region = factor(Region, levels = c("Sacramento River", "San Joaquin River", "Interior Delta"))
   ) 
   
 # Continue to prepare data for the time-series figures
@@ -129,9 +127,9 @@ ts_plot_region <- function(df, region_var, data_var) {
   
   # Define color palettes based on region designation
   color_pal <- switch (as.character(region_var),
-    "San Joaquin" = scale_color_viridis_d(option = "plasma", end = 0.8),
-    "Central Delta" = scale_color_viridis_d(option = "plasma", end = 0.8),
-    Sacramento = scale_color_viridis_d(option = "viridis", end = 0.8)
+    "San Joaquin River" = scale_color_viridis_d(option = "plasma", end = 0.8),
+    "Interior Delta" = scale_color_viridis_d(option = "plasma", end = 0.8),
+    "Sacramento River" = scale_color_viridis_d(option = "viridis", end = 0.8)
   )
   
   # Convert data_var to a string to be used in conditionals
@@ -142,7 +140,7 @@ ts_plot_region <- function(df, region_var, data_var) {
   y_max <- if (data_var_str == "AvgChla") df_ts_ylim$AvgChla_max else df_ts_ylim$MedianChla_max
   
   # Define y-axis label
-  if (region_var == "San Joaquin") {
+  if (region_var == "San Joaquin River") {
     if (data_var_str == "AvgChla") {
       y_label <- "Daily Average Chlorophyll (µg/L)"
     } else {
@@ -153,7 +151,7 @@ ts_plot_region <- function(df, region_var, data_var) {
   }
   
   # Define x-axis label
-  x_label <- if (region_var == "Central Delta") "Date" else NULL
+  x_label <- if (region_var == "Interior Delta") "Date" else NULL
   
   # Create plot
   p <- df %>% 
@@ -270,9 +268,12 @@ plt_bp_yr
 # Export Figures for Report
 
 ```{r export rpt figures, eval = FALSE}
+# Define filepath for figures
+fp_figures <- here("figures")
+
 # Export daily average time-series figure
 ggsave(
-  here("figures/cont_chla_ts_daily_avg_2023rpt.jpg"),
+  file.path(fp_figures, "cont_chla_ts_daily_avg_2023rpt.jpg"),
   plot = plt_ts_avg,
   width = 10,
   height = 8,
@@ -281,7 +282,7 @@ ggsave(
 
 # Export daily median time-series figure
 ggsave(
-  here("figures/cont_chla_ts_daily_med_2023rpt.jpg"),
+  file.path(fp_figures, "cont_chla_ts_daily_med_2023rpt.jpg"),
   plot = plt_ts_med,
   width = 10,
   height = 8,
@@ -290,7 +291,7 @@ ggsave(
 
 # Export boxplot by season figure
 ggsave(
-  here("figures/cont_chla_bp_season_2023rpt.jpg"),
+  file.path(fp_figures, "cont_chla_bp_season_2023rpt.jpg"),
   plot = plt_bp_seas,
   width = 7,
   height = 4.5,
@@ -299,7 +300,7 @@ ggsave(
 
 # Export boxplot by year figure
 ggsave(
-  here("figures/cont_chla_bp_yr_2023rpt.jpg"),
+  file.path(fp_figures, "cont_chla_bp_yr_2023rpt.jpg"),
   plot = plt_bp_yr,
   width = 5.5,
   height = 4.5,

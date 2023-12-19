@@ -337,8 +337,18 @@ df_region_assign <- df_coords %>%
   st_join(st_make_valid(sf_edb_reg), join = st_intersects) %>%
   # Drop sf geometry column since it's no longer needed
   st_drop_geometry() %>%
-  # Assign "Outside" to stations without region assignments
-  replace_na(list(Region = "Outside"))
+  # Rename regions and assign "Outside" to stations without region assignments
+  mutate(
+    Region = case_match(
+      Region,
+      "Sacramento" ~ "Sacramento River",
+      "San Joaquin" ~ "San Joaquin River",
+      "Central Delta" ~ "Interior Delta",
+      NA ~ "Outside"
+    ),
+    # Reassign FAL to the Interior Delta region
+    Region = if_else(Station == "FAL", "Interior Delta", Region)
+  )
 
 # Calculate daily means and medians of continuous chlorophyll data for each station
 df_chla_all_dv <- df_chla_all %>%
